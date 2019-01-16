@@ -1,0 +1,26 @@
+---
+- name: Tasks with/without tags
+  hosts: group00
+  gather_facts: no
+  vars:
+    ansible_become: yes
+    ansible_become_method: sudo
+  tasks:
+    - name: Not have tag here
+      debug:
+        msg: "task without tag"
+        
+    - name: Have tag 'never' here
+      debug:
+        msg: "task with 'never' tag"
+      tags:
+        - never
+        
+    - name: Have tag 'always' here
+      debug:
+        msg: "task with 'always' tag"
+      tags:
+        - always
+  tags:
+    - tasks
+...

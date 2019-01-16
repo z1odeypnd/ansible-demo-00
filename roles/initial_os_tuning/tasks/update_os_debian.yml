@@ -1,0 +1,22 @@
+---
+- name: Install aptitude package (Ubuntu)
+  apt:
+    name: "{{ deb_packages }}"
+    state: latest
+    update_cache: yes
+  
+- name: Update OS (Ubuntu)
+  apt:
+    name: '*'
+    state: latest
+    update_cache: yes
+    
+- name: Check if reboot is needed (Ubuntu)
+  stat:
+    path: /var/run/reboot-required
+  failed_when: None
+  register: stat_result
+  changed_when: stat_result.stat.exists == False
+  notify:
+    - reboot os
+...

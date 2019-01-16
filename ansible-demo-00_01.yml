@@ -1,0 +1,11 @@
+---
+# secondary playbook file for ansible-demo-00
+# roles based playbooks
+- name: OS tuning
+  hosts: all
+  vars:
+    ansible_become: yes
+    ansible_become_method: sudo
+  roles:
+    - initial_os_tuning
+...

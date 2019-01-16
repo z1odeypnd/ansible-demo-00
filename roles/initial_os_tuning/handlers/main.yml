@@ -1,0 +1,6 @@
+---
+# handlers file for ansible-demo-00
+- name: reboot os
+  include_tasks: handlers/reboot.yml
+...
+

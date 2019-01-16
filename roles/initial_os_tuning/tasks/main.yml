@@ -1,0 +1,32 @@
+---
+- name: Update packages (RedHat)
+  include_tasks: update_os_redhat.yml
+  when: "ansible_os_family == 'RedHat'"
+
+- name: Update packages (Debian)
+  include_tasks: update_os_debian.yml
+  when: "ansible_os_family == 'Debian'"
+  
+- name: Create users
+  include_tasks: create_users.yml
+  
+- name: Enable firewall (RedHat)
+  firewalld:
+    state: enabled
+  when: "ansible_os_family == 'RedHat'"
+  
+- name: Enable firewall (Ubuntu)
+  ufw:
+    state: enabled
+  when: "ansible_os_family == 'Debian'"
+
+- name: Debug for handle reboot
+  debug:
+    msg: "Handle reboot"
+    changed_when: true
+  notify:
+    - reboot os
+  tags:
+    - never
+    - reboot
+...

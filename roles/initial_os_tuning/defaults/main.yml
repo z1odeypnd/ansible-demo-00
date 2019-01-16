@@ -1,0 +1,9 @@
+---
+# defaults file for ansible-demo-00
+rh_packages:
+  - epel-release
+  - yum-utils
+
+deb_packages:
+  - aptitude
+...

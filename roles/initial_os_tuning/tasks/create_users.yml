@@ -1,0 +1,27 @@
+---
+- name: Create users and groups
+  block:
+    - name: Create groups
+      group:
+        name: "{{ item.group }}"
+      loop: "{{ os_users|flatten(levels=1) }}"
+    
+    - name: Create users
+      user:
+        name: "{{ item.name }}"
+        group: "{{ item.group }}"
+      loop: "{{ os_users|flatten(levels=1) }}"
+  rescue:
+    - name: Delete users
+      user:
+        name: "{{ item.name }}"
+        force: yes
+        state: absent
+      loop: "{{ os_users|flatten(levels=1) }}"
+    
+    - name: Delete groups
+      group:
+        name: "{{ item.group }}"
+        state: absent
+      loop: "{{ os_users|flatten(levels=1) }}"
+...

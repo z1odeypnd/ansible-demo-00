@@ -1,0 +1,7 @@
+---
+os_users:
+  - name: nginx
+    group: nginx
+  - name: webuser
+    group: webuser
+...

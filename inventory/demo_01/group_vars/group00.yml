@@ -1,0 +1,7 @@
+---
+os_users:
+  - name: "user101"
+    group: "user101"
+  - name: 'user102'
+    group: 'user102'
+...

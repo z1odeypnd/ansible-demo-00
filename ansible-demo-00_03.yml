@@ -1,0 +1,32 @@
+---
+- name: Install nginx
+  hosts: webservers
+  vars:
+    ansible_become: yes
+    ansible_become_method: sudo
+    nginx_html_upload_enable: true
+    nginx_status_enable: true
+  roles:
+    - nginxinc.nginx
+    
+- name: Open firewall port
+  hosts: webservers
+  vars:
+    ansible_become: yes
+    ansible_become_method: sudo
+  tasks:
+    - name: Open firewall port (RedHat)
+      firewalld:
+        port: '80/tcp'
+        permanent: yes
+        state: enabled
+        immediate: yes
+      when: "ansible_os_family == 'RedHat'"
+      
+    - name: Open firewall port (Ubuntu)
+      ufw:
+        port: 80
+        rule: allow
+        state: enabled
+      when: "ansible_os_family == 'Debian'"
+...

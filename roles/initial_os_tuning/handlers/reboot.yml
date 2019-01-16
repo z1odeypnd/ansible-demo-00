@@ -1,0 +1,9 @@
+---
+- name: Reboot OS
+  reboot:
+
+- name: Wait 30 sec. until all services is UP
+  pause:
+    seconds: 30
+...
+

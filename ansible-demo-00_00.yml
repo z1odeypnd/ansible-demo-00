@@ -1,0 +1,174 @@
+---
+- hosts: all
+  vars:
+    ansible_become: yes
+    ansible_become_method: sudo
+#    ansible_become_user: root
+#    ansible_user: ansible
+  gather_facts: yes
+  tasks:
+    - name: Debug Jinja2 example
+      debug:
+        msg:
+          - 'IPv4 addresses num: {{ ansible_all_ipv4_addresses | length }}'
+          - 'IPv4 addresses: {{ ansible_all_ipv4_addresses }}'
+          - 'Server FQDN: {{ ansible_fqdn }}'
+          - 'Server name: {{ ansible_fqdn.split(".")[0] | upper }}'
+          - 'OS family: {{ ansible_os_family }}'
+  tags:
+    - never
+    - jinja2
+
+- hosts: all
+  vars:
+    ansible_become: yes
+    ansible_become_method: sudo
+    rh_packages:
+      - 'epel-release'
+      - 'zabbix-agent'
+    deb_packages:
+      - 'aptitude'
+      - 'zabbix-agent'
+  gather_facts: no
+  tasks:
+   - name: demo-00 install zabbix-agent
+     block:
+       - name: Create group
+         group:
+           name: '{{ zabbix.group }}'
+         
+       - name: Create user
+         user:
+           name: '{{ zabbix.user }}'
+           group: '{{ zabbix.group }}'
+           create_home: no
+           system: yes
+           comment: 'Zabbix Monitoring System'
+         
+       - name: Install zabbix rpm key (RedHat)
+         rpm_key:
+           state: present
+           key: "https://repo.zabbix.com/RPM-GPG-KEY-ZABBIX-A14FE591"
+         when: "ansible_os_family == 'RedHat'"
+         
+       - name: Install zabbix apt key (Ubuntu)
+         apt_key:
+           state: present
+           url: "https://repo.zabbix.com/zabbix-official-repo.key"
+         when: "ansible_os_family == 'Debian'"
+         
+       - name: Add Zabbix repo (Redhat)
+         yum_repository:
+           name: 'zabbix'
+           baseurl: http://repo.zabbix.com/zabbix/4.0/rhel/7/$basearch/
+           description: "Zabbix Official Repository - $basearch"
+           enabled: yes
+           gpgcheck: yes
+         when: "ansible_os_family == 'RedHat'"
+         
+       - name: Add Zabbix repo (Ubuntu)
+         apt_repository:
+           repo: deb http://repo.zabbix.com/zabbix/4.0/ubuntu bionic main
+           state: present
+           filename: '{{ zabbix.repo.ubuntu.name }}'
+         when: "ansible_os_family == 'Debian'
+               and ansible_distribution == 'Ubuntu'"
+         
+       - name: Add Zabbix repo (Debian)
+         apt_repository:
+           repo: deb http://repo.zabbix.com/zabbix/4.0/debian '{{ ansible_distribution_release }}' main
+           state: present
+           filename: zabbix
+         when: "ansible_os_family == 'Debian'
+               and ansible_distribution == 'Debian'"
+         
+       - name: Install zabbix-agent (RedHat)
+         yum:
+           name: '{{ item }}'
+           state: 'latest'
+           update_cache: yes
+         when: "ansible_os_family == 'RedHat'"
+         loop:
+           '{{ rh_packages }}'
+         notify:
+           - start service
+           - enable service
+         
+       - name: Install zabbix-agent (Ubuntu)
+         apt:
+           name: '{{ deb_packages }}'
+           state: 'latest'
+           update_cache: yes
+         when: "ansible_os_family == 'Debian'"
+         notify:
+           - start service
+           - enable service
+         
+       - name: Create zabbix-agent config
+         template:
+           src: 'zabbix_agentd.conf.j2'
+           dest: '{{ zabbix.conf_path }}/zabbix_agentd.conf'
+           owner: '{{ zabbix.user }}'
+           group: '{{ zabbix.group }}'
+           mode: 0644
+         
+       - name: Open firewall port (RedHat)
+         firewalld:
+           port: '{{ zabbix.agent_port }}/tcp'
+           permanent: yes
+           state: enabled
+           immediate: yes
+         when: "ansible_os_family == 'RedHat'"
+         
+       - name: Open firewall port (Ubuntu)
+         ufw:
+           port: '{{ zabbix.agent_port }}'
+           rule: allow
+           state: enabled
+         when: "ansible_os_family == 'Debian'"
+
+#       - name: Enable zabbix-agent service
+#         service:
+#           name: 'zabbix-agent'
+#           enabled: yes
+#           state: restarted
+     rescue:
+       - name: Delete zabbix agent (Ubuntu)
+         apt:
+           name: 'zabbix-agent'
+           state: absent
+           purge: yes
+           autoclean: yes
+           autoremove: yes
+         when: "ansible_os_family == 'Debian'"
+         
+       - name: Delete zabbix agent (RedHat)
+         yum:
+           name: 'zabbix30-agent'
+           state: absent
+         when: "ansible_os_family == 'RedHat'"
+         
+       - name: Delete user
+         user:
+           name: '{{ zabbix.user }}'
+           state: absent
+           force: yes
+     always:
+       - name: Task in 'always' block
+         debug:
+           msg: "Run always"
+
+###
+# Handlers block
+###
+  handlers:
+    - name: start service
+      service:
+        name: 'zabbix-agent'
+        state: restarted
+      
+    - name: enable service
+      service:
+        name: 'zabbix-agent'
+        enabled: yes
+...
